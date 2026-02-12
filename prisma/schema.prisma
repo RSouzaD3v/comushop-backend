@@ -1,0 +1,290 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AuthUserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentProvider {
+  ASAAS
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentTransactionType {
+  CHARGE
+  REFUND
+  WEBHOOK
+}
+
+enum PaymentTransactionStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+enum RefundStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+model User {
+  id          String  @id @default(cuid())
+  email       String? @unique
+  displayName String?
+  phone       String?
+
+  companiesOwned Company[]  @relation("CompanyOwner")
+  orders         Order[]
+  authUsers      AuthUser[]
+  auditLogs      AuditLog[] @relation("AuditActorUser")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Company {
+  id   String @id @default(cuid())
+  name String
+  slug String @unique
+
+  ownerUserId String?
+  owner       User?   @relation("CompanyOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+  products  Product[]
+  orders    Order[]
+  auditLogs AuditLog[] @relation("AuditCompany")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerUserId])
+}
+
+/// Auth is intentionally decoupled from User.
+model AuthUser {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  passwordHash String
+  name         String?
+  status       AuthUserStatus @default(ACTIVE)
+
+  /// Optional link to a global User profile.
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  sessions  AuthSession[]
+  auditLogs AuditLog[]    @relation("AuditActorAuthUser")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model AuthSession {
+  id               String    @id @default(cuid())
+  authUserId       String
+  authUser         AuthUser  @relation(fields: [authUserId], references: [id], onDelete: Cascade)
+  refreshTokenHash String
+  revokedAt        DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([authUserId])
+  @@index([revokedAt])
+}
+
+model Product {
+  id        String        @id @default(cuid())
+  companyId String
+  company   Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  status    ProductStatus @default(DRAFT)
+
+  name        String
+  description String?
+
+  variations ProductVariation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([status])
+}
+
+model ProductVariation {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  sku           String?
+  title         String?
+  attributes    Json?
+  priceCents    Int
+  stockOnHand   Int     @default(0)
+  stockReserved Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, sku])
+  @@index([productId])
+}
+
+/// CRITICAL BUSINESS RULE:
+/// An Order always belongs to exactly one Company (no multi-company orders).
+model Order {
+  id        String      @id @default(cuid())
+  companyId String
+  company   Company     @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  status    OrderStatus @default(PENDING_PAYMENT)
+
+  customerUserId String?
+  customer       User?   @relation(fields: [customerUserId], references: [id], onDelete: SetNull)
+
+  currency      String @default("BRL")
+  subtotalCents Int    @default(0)
+  shippingCents Int    @default(0)
+  discountCents Int    @default(0)
+  totalCents    Int    @default(0)
+
+  items    OrderItem[]
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([customerUserId])
+  @@index([status])
+}
+
+model OrderItem {
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId   String?
+  variationId String?
+
+  quantity        Int
+  unitPriceCents  Int
+  totalPriceCents Int
+
+  /// Snapshots freeze product data at purchase time for compliance/accuracy.
+  productSnapshot Json
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([variationId])
+}
+
+model Payment {
+  id          String          @id @default(cuid())
+  orderId     String
+  order       Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider    PaymentProvider
+  status      PaymentStatus   @default(PENDING)
+  amountCents Int
+  currency    String          @default("BRL")
+
+  transactions PaymentTransaction[]
+  refunds      Refund[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([provider, status])
+}
+
+model PaymentTransaction {
+  id        String  @id @default(cuid())
+  paymentId String
+  payment   Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  type   PaymentTransactionType
+  status PaymentTransactionStatus @default(PENDING)
+
+  providerTransactionId String?
+  amountCents           Int?
+  raw                   Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([paymentId])
+  @@index([providerTransactionId])
+  @@index([type, status])
+}
+
+model Refund {
+  id          String       @id @default(cuid())
+  paymentId   String
+  payment     Payment      @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  status      RefundStatus @default(PENDING)
+  amountCents Int
+  raw         Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([paymentId])
+  @@index([status])
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+
+  actorAuthUserId String?
+  actorAuthUser   AuthUser? @relation("AuditActorAuthUser", fields: [actorAuthUserId], references: [id], onDelete: SetNull)
+
+  actorUserId String?
+  actorUser   User?   @relation("AuditActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  companyId String?
+  company   Company? @relation("AuditCompany", fields: [companyId], references: [id], onDelete: SetNull)
+
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  ip         String?
+  userAgent  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorAuthUserId])
+  @@index([actorUserId])
+  @@index([companyId])
+  @@index([action])
+  @@index([entityType, entityId])
+}
