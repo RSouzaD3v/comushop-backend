@@ -6,13 +6,8 @@ import { OrdersService } from "./orders.service";
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
-  /**
-   * Checkout endpoint.
-   * CRITICAL: may return multiple Orders (one per Company).
-   */
   @Post("checkout")
   async checkout(@Body() dto: CreateCheckoutDto) {
     return await this.ordersService.createCheckout(dto);
   }
 }
-

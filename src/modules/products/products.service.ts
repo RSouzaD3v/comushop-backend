@@ -11,7 +11,6 @@ export class ProductsService {
   ) {}
 
   async create(dto: CreateProductDto) {
-    // validate company exists
     await this.companiesService.getById(dto.companyId);
 
     return await this.productRepo.createProduct({
@@ -43,4 +42,3 @@ export class ProductsService {
     return product;
   }
 }
-

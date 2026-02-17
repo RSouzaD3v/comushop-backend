@@ -6,6 +6,12 @@ datasource db {
   provider = "postgresql"
 }
 
+enum UserRole {
+  ADMIN
+  CUSTOMER
+  SELLER
+}
+
 enum AuthUserStatus {
   ACTIVE
   DISABLED
@@ -59,6 +65,7 @@ model User {
   email       String? @unique
   displayName String?
   phone       String?
+  role        UserRole @default(CUSTOMER)
 
   companiesOwned Company[]  @relation("CompanyOwner")
   orders         Order[]

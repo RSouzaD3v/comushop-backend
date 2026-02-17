@@ -5,11 +5,13 @@
   "main": "index.js",
   "scripts": {
     "build": "prisma generate && tsc -p tsconfig.build.json",
+    "dev": "nest start --watch",
     "start": "node dist/main.js",
     "start:dev": "ts-node -r tsconfig-paths/register src/main.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
+    "prisma:seed": "prisma db seed",
     "test": "echo \"(no tests yet)\" && exit 0"
   },
   "keywords": [],
@@ -27,6 +29,7 @@
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.3",
+    "dotenv": "^17.3.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "prisma": "^7.3.0",
