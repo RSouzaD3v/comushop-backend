@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 
 import { CreateAddressDto } from "./dto/create-address.dto";
 import { PrismaService } from "../prisma/prisma.service";
+import { UpdateProfileDto } from "./dto/update-profile.dto";
 
 @Injectable()
 export class UsersService {
@@ -64,5 +65,35 @@ export class UsersService {
       where: { id: addressId },
       data: dto,
     });
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException("Perfil de usuário não encontrado.");
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: dto,
+    });
+  }
+
+  async getProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        addresses: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException("Usuário não encontrado.");
+    }
+
+    return user;
   }
 }
