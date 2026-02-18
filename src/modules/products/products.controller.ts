@@ -12,9 +12,32 @@ export class ProductsController {
   }
 
   @Get()
-  async list(@Query("companyId") companyId?: string) {
-    if (!companyId) return [];
-    return await this.productsService.listByCompany(companyId);
+  async list(
+    @Query("companyId") companyId?: string,
+    @Query("search") search?: string,
+    @Query("category") category?: string,
+    @Query("limit") limit?: string,
+    @Query("status") status?: string,
+  ) {
+    const filters: {
+      companyId?: string;
+      search?: string;
+      category?: string;
+      take?: number;
+      status?: string;
+    } = {};
+
+    if (companyId) filters.companyId = companyId;
+    if (search) filters.search = search;
+    if (category) filters.category = category;
+    if (limit) filters.take = Number(limit);
+    if (status) filters.status = status;
+
+    if (!companyId && !status) {
+      filters.status = "ACTIVE";
+    }
+
+    return await this.productsService.findAll(filters);
   }
 
   @Get(":id")
@@ -22,4 +45,3 @@ export class ProductsController {
     return await this.productsService.getById(id);
   }
 }
-

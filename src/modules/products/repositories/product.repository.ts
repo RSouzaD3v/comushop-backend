@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
+import { Prisma, ProductStatus } from "@prisma/client";
 
 @Injectable()
 export class ProductRepository {
@@ -43,12 +44,53 @@ export class ProductRepository {
     });
   }
 
-  async listProductsByCompany(companyId: string) {
-    return await this.prisma.product.findMany({
-      where: { companyId },
+  async findAll(params: {
+    companyId?: string;
+    search?: string;
+    category?: string;
+    take?: number;
+    status?: ProductStatus;
+  }) {
+    const where: Prisma.ProductWhereInput = {};
+
+    if (params.status) {
+      where.status = params.status as ProductStatus;
+    }
+
+    if (params.companyId) {
+      where.companyId = params.companyId;
+    }
+
+    if (params.category) {
+      where.category = params.category;
+    }
+
+    if (params.search) {
+      where.OR = [
+        { name: { contains: params.search, mode: "insensitive" } },
+        { description: { contains: params.search, mode: "insensitive" } },
+      ];
+    }
+
+    const queryOptions: Prisma.ProductFindManyArgs = {
+      where,
       orderBy: { createdAt: "desc" },
-      include: { variations: true },
-    });
+      include: {
+        variations: true,
+        company: {
+          select: {
+            name: true,
+            slug: true,
+          },
+        },
+      },
+    };
+
+    if (params.take) {
+      queryOptions.take = Number(params.take);
+    }
+
+    return await this.prisma.product.findMany(queryOptions);
   }
 
   async getProductById(id: string) {

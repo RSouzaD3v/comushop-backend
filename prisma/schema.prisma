@@ -136,6 +136,7 @@ model Product {
 
   name        String
   description String?
+  category    String?
 
   variations ProductVariation[]
 
@@ -144,6 +145,7 @@ model Product {
 
   @@index([companyId])
   @@index([status])
+  @@index([category])
 }
 
 model ProductVariation {

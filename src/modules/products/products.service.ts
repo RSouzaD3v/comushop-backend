@@ -31,9 +31,14 @@ export class ProductsService {
     });
   }
 
-  async listByCompany(companyId: string) {
-    await this.companiesService.getById(companyId);
-    return await this.productRepo.listProductsByCompany(companyId);
+  async findAll(params: {
+    companyId?: string;
+    search?: string;
+    category?: string;
+    take?: number;
+  }) {
+    // Passamos os params para o repositório
+    return await this.productRepo.findAll(params);
   }
 
   async getById(id: string) {
