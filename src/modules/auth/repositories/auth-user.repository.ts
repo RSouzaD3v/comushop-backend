@@ -6,7 +6,16 @@ export class AuthUserRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findById(id: string) {
-    return await this.prisma.authUser.findUnique({ where: { id } });
+    return await this.prisma.authUser.findUnique({
+      where: { id },
+      include: {
+        user: {
+          include: {
+            companiesOwned: true,
+          },
+        },
+      },
+    });
   }
 
   async findByEmail(email: string) {

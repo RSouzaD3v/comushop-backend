@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
 import { randomBytes } from "node:crypto";
@@ -38,8 +42,14 @@ export class AuthService {
     });
 
     const tokens = await this.issueTokens(authUser.id);
+
+    // No registro, company é null por padrão (Customer)
     return {
-      authUser: this.sanitizeAuthUser({ ...authUser, role: userProfile.role }),
+      authUser: this.sanitizeAuthUser({
+        ...authUser,
+        role: userProfile.role,
+        company: null,
+      }),
       ...tokens,
     };
   }
@@ -54,17 +64,38 @@ export class AuthService {
     if (!ok) throw new UnauthorizedException("Invalid credentials");
 
     const tokens = await this.issueTokens(authUser.id);
+
     const profile = authUser.user ?? null;
+    // Lógica para extrair a empresa se for Vendedor
     const company =
       profile?.role === "SELLER" ? (profile.companiesOwned?.[0] ?? null) : null;
 
     return {
+      // Company vai injetado APENAS aqui dentro
       authUser: this.sanitizeAuthUser({
         ...authUser,
         role: profile?.role ?? "CUSTOMER",
         company,
       }),
       ...tokens,
+    };
+  }
+
+  async getMe(authUserId: string) {
+    const authUser = await this.authUserRepo.findById(authUserId);
+    if (!authUser) throw new NotFoundException("User not found");
+
+    const profile = authUser.user ?? null;
+    const company =
+      profile?.role === "SELLER" ? (profile.companiesOwned?.[0] ?? null) : null;
+
+    return {
+      // Company vai injetado APENAS aqui dentro
+      authUser: this.sanitizeAuthUser({
+        ...authUser,
+        role: profile?.role ?? "CUSTOMER",
+        company,
+      }),
     };
   }
 
@@ -106,7 +137,6 @@ export class AuthService {
     createdAt: Date;
     updatedAt: Date;
   }) {
-    // Nunca vazar passwordHash nem relações no retorno.
     return {
       id: authUser.id,
       email: authUser.email,
