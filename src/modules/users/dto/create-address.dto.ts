@@ -8,6 +8,7 @@ export class CreateAddressDto {
   @IsString()
   @IsNotEmpty()
   zipCode!: string;
+
   @IsString()
   @IsNotEmpty()
   street!: string;

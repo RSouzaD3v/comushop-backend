@@ -96,7 +96,7 @@ export class ProductRepository {
   async getProductById(id: string) {
     return await this.prisma.product.findUnique({
       where: { id },
-      include: { variations: true },
+      include: { variations: true, company: true },
     });
   }
 

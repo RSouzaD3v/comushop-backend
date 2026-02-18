@@ -37,13 +37,14 @@ export class ProductsService {
     category?: string;
     take?: number;
   }) {
-    // Passamos os params para o repositório
     return await this.productRepo.findAll(params);
   }
 
   async getById(id: string) {
     const product = await this.productRepo.getProductById(id);
+
     if (!product) throw new NotFoundException("Product not found");
+
     return product;
   }
 }
