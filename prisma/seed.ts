@@ -21,7 +21,6 @@ async function main() {
   const passwordHash = await bcrypt.hash("123456", 12);
 
   console.log("--- 🚀 Iniciando Seed ---");
-
   console.log("Limpando dados existentes...");
 
   try {
@@ -34,69 +33,124 @@ async function main() {
     await prisma.payment.deleteMany();
     await prisma.order.deleteMany();
     await prisma.productVariation.deleteMany();
-    await prisma.authUser.deleteMany();
     await prisma.product.deleteMany();
     await prisma.company.deleteMany();
+    await prisma.userAddress.deleteMany();
+    await prisma.authUser.deleteMany();
     await prisma.user.deleteMany();
   } catch (err) {
     console.log("Aviso: Algumas tabelas podem estar vazias ou não migradas.");
   }
 
-  const users = [
-    {
+  console.log("Semeando usuários, endereços e produtos...");
+
+  // 1. Criar Cliente com Endereços Reais
+  const clienteProfile = await prisma.user.create({
+    data: {
       email: "cliente@teste.com",
-      name: "Cliente Teste",
-      displayName: "Cliente ComuShop",
+      displayName: "Paulo André (Cliente)",
       role: "CUSTOMER",
+      addresses: {
+        create: [
+          {
+            description: "Minha Casa",
+            zipCode: "74000100",
+            street: "Avenida T-63",
+            number: "123",
+            neighborhood: "Setor Bueno",
+            city: "Goiânia",
+            state: "GO",
+            isDefault: true,
+          },
+          {
+            description: "Trabalho",
+            zipCode: "01310100",
+            street: "Avenida Paulista",
+            number: "1000",
+            neighborhood: "Bela Vista",
+            city: "São Paulo",
+            state: "SP",
+            isDefault: false,
+          },
+        ],
+      },
     },
-    {
+  });
+
+  // 2. Criar Vendedor e Loja
+  const vendedorProfile = await prisma.user.create({
+    data: {
       email: "vendedor@teste.com",
-      name: "Vendedor Teste",
       displayName: "Vendedor Oficial",
       role: "SELLER",
     },
-    {
+  });
+
+  const loja = await prisma.company.create({
+    data: {
+      name: "Minha Loja de Teste",
+      slug: "minha-loja-de-teste",
+      ownerUserId: vendedorProfile.id,
+    },
+  });
+
+  // 3. Criar Produtos de Exemplo para a Loja
+  const categorias = ["Eletrônicos", "Casa", "Moda"];
+  for (let i = 1; i <= 6; i++) {
+    await prisma.product.create({
+      data: {
+        companyId: loja.id,
+        name: `Produto Exemplo ${i}`,
+        description: `Descrição do produto ${i} para testes de vitrine.`,
+        // CORREÇÃO: Garantindo que category seja string ou null, nunca undefined
+        category: categorias[i % categorias.length] ?? null,
+        status: "ACTIVE",
+        variations: {
+          create: [
+            {
+              sku: `SKU-${i}`,
+              priceCents: 1990 * i,
+              stockOnHand: 100,
+              title: "Padrão",
+            },
+          ],
+        },
+      },
+    });
+  }
+
+  // 4. Criar Admin
+  const adminProfile = await prisma.user.create({
+    data: {
       email: "admin@teste.com",
-      name: "Admin Teste",
       displayName: "Administrador do Sistema",
       role: "ADMIN",
     },
-  ];
+  });
 
-  console.log("Semeando usuários e perfis...");
-
-  for (const userData of users) {
-    // 1. Perfil Global
-    const userProfile = await prisma.user.create({
-      data: {
-        email: userData.email,
-        displayName: userData.displayName,
-        role: userData.role as any,
-      },
-    });
-
-    // 2. Conta de Autenticação
-    await prisma.authUser.create({
-      data: {
-        email: userData.email,
-        name: userData.name,
+  // 5. Semeando as contas de Autenticação (AuthUser)
+  await prisma.authUser.createMany({
+    data: [
+      {
+        email: "cliente@teste.com",
+        name: "Cliente Teste",
         passwordHash: passwordHash,
-        userId: userProfile.id,
+        userId: clienteProfile.id,
       },
-    });
-
-    // 3. Loja para o vendedor
-    if (userData.email === "vendedor@teste.com") {
-      await prisma.company.create({
-        data: {
-          name: "Minha Loja de Teste",
-          slug: "minha-loja-teste",
-          ownerUserId: userProfile.id,
-        },
-      });
-      console.log("✅ Loja de teste criada para o vendedor.");
-    }
-  }
+      {
+        email: "vendedor@teste.com",
+        name: "Vendedor Teste",
+        passwordHash: passwordHash,
+        userId: vendedorProfile.id,
+      },
+      {
+        email: "admin@teste.com",
+        name: "Admin Teste",
+        passwordHash: passwordHash,
+        userId: adminProfile.id,
+      },
+    ],
+  });
 
   console.log("--- ✨ Seed Finalizada com Sucesso! ---");
 }

@@ -41,4 +41,28 @@ export class UsersService {
       where: { id: addressId },
     });
   }
+
+  async updateAddress(
+    userId: string,
+    addressId: string,
+    dto: CreateAddressDto,
+  ) {
+    const address = await this.prisma.userAddress.findFirst({
+      where: { id: addressId, userId },
+    });
+
+    if (!address) throw new NotFoundException("Endereço não encontrado");
+
+    if (dto.isDefault) {
+      await this.prisma.userAddress.updateMany({
+        where: { userId },
+        data: { isDefault: false },
+      });
+    }
+
+    return this.prisma.userAddress.update({
+      where: { id: addressId },
+      data: dto,
+    });
+  }
 }
