@@ -152,6 +152,30 @@ async function main() {
     ],
   });
 
+  await prisma.coupon.upsert({
+    where: { code: "COMUSHOP10" },
+    update: {},
+    create: {
+      code: "COMUSHOP10",
+      discountType: "PERCENTAGE",
+      value: 10,
+      minPurchaseCents: 5000,
+      isActive: true,
+    },
+  });
+
+  await prisma.coupon.upsert({
+    where: { code: "BEMVINDO20" },
+    update: {},
+    create: {
+      code: "BEMVINDO20",
+      discountType: "FIXED",
+      value: 2000,
+      minPurchaseCents: 10000,
+      isActive: true,
+    },
+  });
+
   console.log("--- ✨ Seed Finalizada com Sucesso! ---");
 }
 

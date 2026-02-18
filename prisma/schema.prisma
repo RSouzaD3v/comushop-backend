@@ -190,8 +190,6 @@ model ProductVariation {
   @@index([productId])
 }
 
-/// CRITICAL BUSINESS RULE:
-/// An Order always belongs to exactly one Company (no multi-company orders).
 model Order {
   id        String      @id @default(cuid())
   companyId String
@@ -231,7 +229,6 @@ model OrderItem {
   unitPriceCents  Int
   totalPriceCents Int
 
-  /// Snapshots freeze product data at purchase time for compliance/accuracy.
   productSnapshot Json
 
   createdAt DateTime @default(now())
@@ -319,4 +316,19 @@ model AuditLog {
   @@index([companyId])
   @@index([action])
   @@index([entityType, entityId])
+}
+
+model Coupon {
+  id              String   @id @default(uuid())
+  code            String   @unique
+  discountType    String   
+  value           Int      
+  minPurchaseCents Int     @default(0) 
+  expirationDate  DateTime?
+  isActive        Boolean  @default(true)
+  maxUses         Int?     
+  usedCount       Int      @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
