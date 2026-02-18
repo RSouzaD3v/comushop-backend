@@ -61,11 +61,13 @@ enum RefundStatus {
 }
 
 model User {
-  id          String  @id @default(cuid())
-  email       String? @unique
+  id          String   @id @default(cuid())
+  email       String?  @unique
   displayName String?
   phone       String?
   role        UserRole @default(CUSTOMER)
+
+  addresses   UserAddress[]
 
   companiesOwned Company[]  @relation("CompanyOwner")
   orders         Order[]
@@ -74,6 +76,27 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model UserAddress {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  description  String?  
+  zipCode      String  
+  street       String
+  number       String
+  complement   String?
+  neighborhood String
+  city         String
+  state        String
+  isDefault    Boolean  @default(false)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model Company {
@@ -183,6 +206,7 @@ model Order {
   shippingCents Int    @default(0)
   discountCents Int    @default(0)
   totalCents    Int    @default(0)
+  shippingAddress Json?
 
   items    OrderItem[]
   payments Payment[]
