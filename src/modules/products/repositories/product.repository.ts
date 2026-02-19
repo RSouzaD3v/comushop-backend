@@ -84,6 +84,7 @@ export class ProductRepository {
           select: {
             name: true,
             slug: true,
+            logoUrl: true,
           },
         },
       },
@@ -104,7 +105,13 @@ export class ProductRepository {
         images: {
           orderBy: { order: "asc" },
         },
-        company: true,
+        company: {
+          select: {
+            name: true,
+            slug: true,
+            logoUrl: true,
+          },
+        },
       },
     });
   }

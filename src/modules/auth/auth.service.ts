@@ -48,6 +48,7 @@ export class AuthService {
       authUser: this.sanitizeAuthUser({
         ...authUser,
         role: userProfile.role,
+        avatarUrl: userProfile.avatarUrl ?? null,
         company: null,
       }),
       ...tokens,
@@ -75,6 +76,7 @@ export class AuthService {
       authUser: this.sanitizeAuthUser({
         ...authUser,
         role: profile?.role ?? "CUSTOMER",
+        avatarUrl: profile?.avatarUrl ?? null,
         company,
       }),
       ...tokens,
@@ -94,6 +96,7 @@ export class AuthService {
       authUser: this.sanitizeAuthUser({
         ...authUser,
         role: profile?.role ?? "CUSTOMER",
+        avatarUrl: profile?.avatarUrl ?? null,
         company,
       }),
     };
@@ -134,6 +137,7 @@ export class AuthService {
     company?: Company | null;
     status?: unknown;
     userId?: string | null;
+    avatarUrl?: string | null;
     createdAt: Date;
     updatedAt: Date;
   }) {
@@ -144,6 +148,7 @@ export class AuthService {
       role: authUser.role,
       status: authUser.status,
       userId: authUser.userId ?? null,
+      avatarUrl: authUser.avatarUrl ?? null,
       company: authUser.company ?? null,
       createdAt: authUser.createdAt,
       updatedAt: authUser.updatedAt,

@@ -10,5 +10,8 @@ export class UpdateCompanyDto {
   @IsString()
   @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
   slug?: string;
-}
 
+  @IsOptional()
+  @IsString()
+  logoUrl?: string | null;
+}

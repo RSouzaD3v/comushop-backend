@@ -3,10 +3,14 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { CreateAddressDto } from "./dto/create-address.dto";
 import { PrismaService } from "../prisma/prisma.service";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
+import { S3Service } from "../storage/s3.service";
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly s3Service: S3Service,
+  ) {}
 
   async listAddresses(userId: string) {
     return this.prisma.userAddress.findMany({
@@ -95,5 +99,61 @@ export class UsersService {
     }
 
     return user;
+  }
+
+  async uploadAvatar(
+    userId: string,
+    file: { buffer: Buffer; originalname: string; mimetype: string },
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException("Usuário não encontrado.");
+    }
+
+    // Delete old avatar if exists
+    if (user.avatarUrl) {
+      const oldKey = user.avatarUrl
+        .split(`${process.env.AWS_REGION}`)
+        .pop()
+        ?.replace("amazonaws.com/", "");
+      if (oldKey) {
+        await this.s3Service.deleteObject(oldKey);
+      }
+    }
+
+    const { key, url } = await this.s3Service.uploadUserAvatar(userId, file);
+
+    return await this.prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl: url },
+    });
+  }
+
+  async deleteAvatar(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException("Usuário não encontrado.");
+    }
+
+    if (user.avatarUrl) {
+      const oldKey = user.avatarUrl
+        .split(`${process.env.AWS_REGION}`)
+        .pop()
+        ?.replace("amazonaws.com/", "");
+      if (oldKey) {
+        await this.s3Service.deleteObject(oldKey);
+      }
+    }
+
+    return await this.prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl: null },
+    });
   }
 }

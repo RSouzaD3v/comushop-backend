@@ -27,12 +27,13 @@ export class CompanyRepository {
     return await this.prisma.company.findMany({ orderBy: { createdAt: "desc" } });
   }
 
-  async update(id: string, input: { name?: string; slug?: string }) {
+  async update(id: string, input: { name?: string; slug?: string; logoUrl?: string | null }) {
     return await this.prisma.company.update({
       where: { id },
       data: {
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(input.slug !== undefined ? { slug: input.slug } : {}),
+        ...(input.logoUrl !== undefined ? { logoUrl: input.logoUrl } : {}),
       },
     });
   }

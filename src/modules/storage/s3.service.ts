@@ -64,4 +64,48 @@ export class S3Service {
       }),
     );
   }
+
+  async uploadUserAvatar(
+    userId: string,
+    file: { buffer: Buffer; originalname: string; mimetype: string },
+  ) {
+    const extension = extname(file.originalname).toLowerCase();
+    const key = `avatars/${userId}/${randomUUID()}${extension}`;
+
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+      }),
+    );
+
+    return {
+      key,
+      url: this.getPublicUrl(key),
+    };
+  }
+
+  async uploadCompanyLogo(
+    companyId: string,
+    file: { buffer: Buffer; originalname: string; mimetype: string },
+  ) {
+    const extension = extname(file.originalname).toLowerCase();
+    const key = `logos/${companyId}/${randomUUID()}${extension}`;
+
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+      }),
+    );
+
+    return {
+      key,
+      url: this.getPublicUrl(key),
+    };
+  }
 }

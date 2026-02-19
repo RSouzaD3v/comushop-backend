@@ -6,10 +6,14 @@ import {
 import { CompanyRepository } from "./repositories/company.repository";
 import { CreateCompanyDto } from "./dto/create-company.dto";
 import { UpdateCompanyDto } from "./dto/update-company.dto";
+import { S3Service } from "../storage/s3.service";
 
 @Injectable()
 export class CompaniesService {
-  constructor(private readonly companyRepo: CompanyRepository) {}
+  constructor(
+    private readonly companyRepo: CompanyRepository,
+    private readonly s3Service: S3Service,
+  ) {}
 
   async create(dto: CreateCompanyDto) {
     const existing = await this.companyRepo.findBySlug(dto.slug);
@@ -49,5 +53,43 @@ export class CompaniesService {
     }
 
     return await this.companyRepo.update(id, dto);
+  }
+
+  async uploadLogo(
+    companyId: string,
+    file: { buffer: Buffer; originalname: string; mimetype: string },
+  ) {
+    const company = await this.getById(companyId);
+
+    // Delete old logo if exists
+    if (company.logoUrl) {
+      const oldKey = company.logoUrl
+        .split(`${process.env.AWS_REGION}`)
+        .pop()
+        ?.replace("amazonaws.com/", "");
+      if (oldKey) {
+        await this.s3Service.deleteObject(oldKey);
+      }
+    }
+
+    const { url } = await this.s3Service.uploadCompanyLogo(companyId, file);
+
+    return await this.companyRepo.update(companyId, { logoUrl: url });
+  }
+
+  async deleteLogo(companyId: string) {
+    const company = await this.getById(companyId);
+
+    if (company.logoUrl) {
+      const oldKey = company.logoUrl
+        .split(`${process.env.AWS_REGION}`)
+        .pop()
+        ?.replace("amazonaws.com/", "");
+      if (oldKey) {
+        await this.s3Service.deleteObject(oldKey);
+      }
+    }
+
+    return await this.companyRepo.update(companyId, { logoUrl: null });
   }
 }
