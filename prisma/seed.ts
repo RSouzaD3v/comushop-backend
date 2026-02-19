@@ -110,12 +110,19 @@ async function main() {
     categoriasData.map((cat) =>
       prisma.category.create({
         data: cat,
-      })
-    )
+      }),
+    ),
   );
 
   // 4. Criar Produtos de Exemplo para a Loja
-  const categoriasNames = ["Roupas", "Eletrônicos", "Casa", "Beleza", "Esportes", "Outros"];
+  const categoriasNames = [
+    "Roupas",
+    "Eletrônicos",
+    "Casa",
+    "Beleza",
+    "Esportes",
+    "Outros",
+  ];
   for (let i = 1; i <= 6; i++) {
     await prisma.product.create({
       data: {
