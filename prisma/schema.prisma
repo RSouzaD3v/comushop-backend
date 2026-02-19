@@ -161,7 +161,8 @@ model Product {
 
   name        String
   description String?
-  category    String?
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   variations ProductVariation[]
   images     ProductImage[]
@@ -171,7 +172,20 @@ model Product {
 
   @@index([companyId])
   @@index([status])
-  @@index([category])
+  @@index([categoryId])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  description String?
+  imageUrl  String?
+
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ProductImage {

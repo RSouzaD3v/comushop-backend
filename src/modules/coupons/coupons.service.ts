@@ -28,4 +28,21 @@ export class CouponsService {
       value: coupon.value,
     };
   }
+
+  async listActiveCoupons() {
+    return await this.prisma.coupon.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        code: true,
+        discountType: true,
+        value: true,
+        minPurchaseCents: true,
+        expirationDate: true,
+        maxUses: true,
+        usedCount: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  }
 }

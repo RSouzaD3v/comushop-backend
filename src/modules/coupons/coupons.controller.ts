@@ -5,6 +5,11 @@ import { CouponsService } from "./coupons.service";
 export class CouponsController {
   constructor(private readonly couponsService: CouponsService) {}
 
+  @Get()
+  async listActive() {
+    return await this.couponsService.listActiveCoupons();
+  }
+
   @Get("validate/:code")
   async validate(
     @Param("code") code: string,

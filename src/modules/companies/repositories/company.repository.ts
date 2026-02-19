@@ -5,7 +5,11 @@ import { PrismaService } from "../../prisma/prisma.service";
 export class CompanyRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(input: { name: string; slug: string; ownerUserId?: string | null }) {
+  async create(input: {
+    name: string;
+    slug: string;
+    ownerUserId?: string | null;
+  }) {
     return await this.prisma.company.create({
       data: {
         name: input.name,
@@ -24,10 +28,15 @@ export class CompanyRepository {
   }
 
   async list() {
-    return await this.prisma.company.findMany({ orderBy: { createdAt: "desc" } });
+    return await this.prisma.company.findMany({
+      orderBy: { createdAt: "desc" },
+    });
   }
 
-  async update(id: string, input: { name?: string; slug?: string; logoUrl?: string | null }) {
+  async update(
+    id: string,
+    input: { name?: string; slug?: string; logoUrl?: string | null },
+  ) {
     return await this.prisma.company.update({
       where: { id },
       data: {
@@ -38,4 +47,3 @@ export class CompanyRepository {
     });
   }
 }
-

@@ -62,7 +62,7 @@ export class ProductRepository {
     }
 
     if (params.category) {
-      where.category = params.category;
+      where.categoryId = params.category;
     }
 
     if (params.search) {

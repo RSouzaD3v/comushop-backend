@@ -1,14 +1,20 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { CreateCheckoutDto } from "./dto/create-checkout.dto";
 import { CouponsService } from "../coupons/coupons.service";
 import { OrderStatus, Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { OrderRepository } from "./repositories/order.repository";
 
 @Injectable()
 export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly couponsService: CouponsService,
+    private readonly orderRepo: OrderRepository,
   ) {}
 
   async createCheckout(userId: string, dto: CreateCheckoutDto) {
@@ -154,5 +160,21 @@ export class OrdersService {
     }
 
     return createdOrders;
+  }
+
+  async listByUserId(userId: string, take?: number) {
+    return await this.orderRepo.listByUserId(userId, take);
+  }
+
+  async getOrderById(orderId: string, userId: string) {
+    const order = await this.orderRepo.getOrderById(orderId, userId);
+
+    if (!order) {
+      throw new NotFoundException(
+        "Pedido não encontrado ou não pertence a você.",
+      );
+    }
+
+    return order;
   }
 }
