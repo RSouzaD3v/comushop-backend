@@ -96,16 +96,33 @@ async function main() {
     },
   });
 
-  // 3. Criar Produtos de Exemplo para a Loja
-  const categorias = ["Eletrônicos", "Casa", "Moda"];
+  // 3. Criar Categorias
+  const categoriasData = [
+    { name: "Roupas", slug: "roupas" },
+    { name: "Eletrônicos", slug: "eletronicos" },
+    { name: "Casa", slug: "casa" },
+    { name: "Beleza", slug: "beleza" },
+    { name: "Esportes", slug: "esportes" },
+    { name: "Outros", slug: "outros" },
+  ];
+
+  const categorias = await Promise.all(
+    categoriasData.map((cat) =>
+      prisma.category.create({
+        data: cat,
+      })
+    )
+  );
+
+  // 4. Criar Produtos de Exemplo para a Loja
+  const categoriasNames = ["Roupas", "Eletrônicos", "Casa", "Beleza", "Esportes", "Outros"];
   for (let i = 1; i <= 6; i++) {
     await prisma.product.create({
       data: {
         companyId: loja.id,
         name: `Produto Exemplo ${i}`,
         description: `Descrição do produto ${i} para testes de vitrine.`,
-        // CORREÇÃO: Garantindo que category seja string ou null, nunca undefined
-        category: categorias[i % categorias.length] ?? null,
+        categoryId: categorias[i % categorias.length]!.id,
         status: "ACTIVE",
         variations: {
           create: [
@@ -121,7 +138,7 @@ async function main() {
     });
   }
 
-  // 4. Criar Admin
+  // 5. Criar Admin
   const adminProfile = await prisma.user.create({
     data: {
       email: "admin@teste.com",
@@ -130,7 +147,7 @@ async function main() {
     },
   });
 
-  // 5. Semeando as contas de Autenticação (AuthUser)
+  // 6. Semeando as contas de Autenticação (AuthUser)
   await prisma.authUser.createMany({
     data: [
       {
