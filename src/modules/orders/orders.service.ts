@@ -1,99 +1,158 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { CreateCheckoutDto } from "./dto/create-checkout.dto";
-import { ProductRepository } from "../products/repositories/product.repository";
-import { OrderRepository } from "./repositories/order.repository";
+import { CouponsService } from "../coupons/coupons.service";
+import { OrderStatus, Prisma } from "@prisma/client";
+import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class OrdersService {
   constructor(
-    private readonly productRepo: ProductRepository,
-    private readonly orderRepo: OrderRepository
+    private readonly prisma: PrismaService,
+    private readonly couponsService: CouponsService,
   ) {}
 
-  /**
-   * CRITICAL RULE: checkout cannot produce multi-company orders.
-   * This method groups items by seller/company and creates one Order per Company.
-   */
-  async createCheckout(dto: CreateCheckoutDto) {
-    if (dto.items.length === 0) throw new BadRequestException("No items");
+  async createCheckout(userId: string, dto: CreateCheckoutDto) {
+    const { items, addressId, couponCode } = dto;
 
-    const variationIds = dto.items.map((i) => i.variationId);
-    const variations = await this.productRepo.findVariationsByIds(variationIds);
-
-    const variationsById = new Map(variations.map((v) => [v.id, v]));
-    for (const item of dto.items) {
-      const v = variationsById.get(item.variationId);
-      if (!v)
-        throw new BadRequestException(
-          `Variation not found: ${item.variationId}`
-        );
-      if (v.product.status !== "ACTIVE")
-        throw new BadRequestException("Product is not active");
-      if (v.stockOnHand - v.stockReserved < item.quantity) {
-        throw new BadRequestException(
-          `Insufficient stock for variation: ${item.variationId}`
-        );
-      }
+    if (!items || items.length === 0) {
+      throw new BadRequestException("O carrinho está vazio.");
     }
 
-    // Group by companyId (seller)
-    const grouped = new Map<string, typeof dto.items>();
-    for (const item of dto.items) {
-      const v = variationsById.get(item.variationId)!;
-      const companyId = v.product.companyId;
-      const arr = grouped.get(companyId) ?? [];
-      arr.push(item);
-      grouped.set(companyId, arr);
-    }
+    const variationIds = items.map((i) => i.variationId);
+    const variations = await this.prisma.productVariation.findMany({
+      where: { id: { in: variationIds } },
+      include: {
+        product: {
+          include: { company: true },
+        },
+      },
+    });
 
-    const orders = [];
-    for (const [companyId, items] of grouped.entries()) {
-      const orderItems = items.map((i) => {
-        const v = variationsById.get(i.variationId)!;
-
-        const unitPriceCents = v.priceCents;
-        const totalPriceCents = unitPriceCents * i.quantity;
-
-        const productSnapshot = {
-          product: {
-            id: v.product.id,
-            name: v.product.name,
-            description: v.product.description,
-          },
-          variation: {
-            id: v.id,
-            sku: v.sku,
-            title: v.title,
-            attributes: v.attributes,
-            priceCents: v.priceCents,
-          },
-          company: {
-            id: v.product.companyId,
-            name: v.product.company.name,
-            slug: v.product.company.slug,
-          },
-        };
-
-        return {
-          productId: v.product.id,
-          variationId: v.id,
-          quantity: i.quantity,
-          unitPriceCents,
-          totalPriceCents,
-          productSnapshot,
-        };
-      });
-
-      orders.push(
-        await this.orderRepo.createOrderWithItems({
-          companyId,
-          customerUserId: dto.customerUserId ?? null,
-          currency: "BRL",
-          items: orderItems,
-        })
+    if (variations.length !== items.length) {
+      throw new BadRequestException(
+        "Um ou mais produtos não foram encontrados.",
       );
     }
 
-    return { orders };
+    const variationsMap = new Map(variations.map((v) => [v.id, v]));
+    const groupedItems = new Map<string, typeof items>();
+
+    for (const itemDto of items) {
+      const variation = variationsMap.get(itemDto.variationId);
+
+      if (!variation) continue;
+      if (variation.product.status !== "ACTIVE") {
+        throw new BadRequestException(
+          `O produto "${variation.product.name}" não está mais disponível.`,
+        );
+      }
+
+      if (variation.stockOnHand < itemDto.quantity) {
+        throw new BadRequestException(
+          `Estoque insuficiente para: ${variation.product.name}`,
+        );
+      }
+
+      const companyId = variation.product.companyId;
+      const group = groupedItems.get(companyId) || [];
+      group.push(itemDto);
+      groupedItems.set(companyId, group);
+    }
+
+    const createdOrders = [];
+
+    for (const [companyId, groupItems] of groupedItems.entries()) {
+      let subtotalCents = 0;
+
+      const orderItemsData: Prisma.OrderItemCreateWithoutOrderInput[] = [];
+
+      for (const itemDto of groupItems) {
+        const variation = variationsMap.get(itemDto.variationId)!;
+        const totalItemCents = variation.priceCents * itemDto.quantity;
+
+        subtotalCents += totalItemCents;
+
+        orderItemsData.push({
+          productId: variation.productId,
+          variationId: variation.id,
+          quantity: itemDto.quantity,
+          unitPriceCents: variation.priceCents,
+          totalPriceCents: totalItemCents,
+          productSnapshot: {
+            name: variation.product.name,
+            sku: variation.sku || "",
+            title: variation.title || "",
+            description: variation.product.description || "",
+            companyName: variation.product.company.name,
+          },
+        });
+      }
+
+      let discountCents = 0;
+      if (couponCode) {
+        try {
+          const coupon = await this.couponsService.validateCoupon(
+            couponCode,
+            subtotalCents,
+          );
+
+          if (coupon.discountType === "PERCENTAGE") {
+            discountCents = Math.round(subtotalCents * (coupon.value / 100));
+          } else {
+            discountCents = coupon.value;
+          }
+        } catch (error: any) {
+          throw new BadRequestException(
+            `Erro no cupom para a loja ${companyId}: ${error.message}`,
+          );
+        }
+      }
+
+      const shippingCents = 990;
+      const totalCents = Math.max(
+        0,
+        subtotalCents + shippingCents - discountCents,
+      );
+
+      const order = await this.prisma.$transaction(async (tx) => {
+        for (const itemDto of groupItems) {
+          await tx.productVariation.update({
+            where: { id: itemDto.variationId },
+            data: {
+              stockOnHand: { decrement: itemDto.quantity },
+              stockReserved: { increment: itemDto.quantity },
+            },
+          });
+        }
+
+        if (discountCents > 0 && couponCode) {
+          await tx.coupon.update({
+            where: { code: couponCode },
+            data: { usedCount: { increment: 1 } },
+          });
+        }
+
+        return tx.order.create({
+          data: {
+            companyId,
+            customerUserId: userId,
+            status: OrderStatus.PENDING_PAYMENT,
+            currency: "BRL",
+            subtotalCents,
+            shippingCents,
+            discountCents,
+            totalCents,
+            items: {
+              create: orderItemsData,
+            },
+          },
+          include: { items: true },
+        });
+      });
+
+      createdOrders.push(order);
+    }
+
+    return createdOrders;
   }
 }

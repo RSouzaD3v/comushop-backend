@@ -13,21 +13,13 @@ export class CouponsService {
     });
 
     if (!coupon || !coupon.isActive) {
-      throw new BadRequestException("Cupom inválido ou inexistente.");
-    }
-
-    if (coupon.expirationDate && coupon.expirationDate < new Date()) {
-      throw new BadRequestException("Este cupom já expirou.");
+      throw new BadRequestException("Cupom inválido ou expirado.");
     }
 
     if (subtotalCents < coupon.minPurchaseCents) {
       throw new BadRequestException(
-        `O valor mínimo para este cupom é R$ ${coupon.minPurchaseCents / 100}`,
+        `Compra mínima para este cupom é de R$ ${(coupon.minPurchaseCents / 100).toFixed(2)}`,
       );
-    }
-
-    if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) {
-      throw new BadRequestException("Este cupom atingiu o limite de usos.");
     }
 
     return {

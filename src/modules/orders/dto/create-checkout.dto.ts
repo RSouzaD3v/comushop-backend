@@ -1,15 +1,17 @@
+import { Type } from "class-transformer";
 import {
   IsArray,
   IsInt,
+  IsNotEmpty,
   IsOptional,
   IsString,
   Min,
   ValidateNested,
 } from "class-validator";
-import { Type } from "class-transformer";
 
 export class CheckoutItemDto {
   @IsString()
+  @IsNotEmpty()
   variationId!: string;
 
   @IsInt()
@@ -18,9 +20,17 @@ export class CheckoutItemDto {
 }
 
 export class CreateCheckoutDto {
+  @IsString()
+  @IsNotEmpty()
+  addressId!: string;
+
   @IsOptional()
   @IsString()
   customerUserId?: string;
+
+  @IsOptional()
+  @IsString()
+  couponCode?: string;
 
   @IsArray()
   @ValidateNested({ each: true })

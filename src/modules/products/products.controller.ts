@@ -1,6 +1,26 @@
-import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UploadedFiles,
+  UseInterceptors,
+} from "@nestjs/common";
+import { FilesInterceptor } from "@nestjs/platform-express";
 import { ProductsService } from "./products.service";
 import { CreateProductDto } from "./dto/create-product.dto";
+
+interface UploadedFile {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+}
+import { SetPrimaryImageDto } from "./dto/set-primary-image.dto";
+import { UpdateProductImageOrderDto } from "./dto/update-product-image-order.dto";
 
 @Controller("products")
 export class ProductsController {
@@ -43,5 +63,48 @@ export class ProductsController {
   @Get(":id")
   async get(@Param("id") id: string) {
     return await this.productsService.getById(id);
+  }
+
+  @Post(":id/images")
+  @UseInterceptors(
+    FilesInterceptor("files", 10, {
+      limits: { fileSize: 5 * 1024 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        if (!file.mimetype.startsWith("image/")) {
+          return cb(new Error("Apenas imagens sao permitidas."), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  async uploadImages(
+    @Param("id") id: string,
+    @UploadedFiles() files: UploadedFile[],
+  ) {
+    return await this.productsService.uploadImages(id, files);
+  }
+
+  @Patch(":id/images/primary")
+  async setPrimaryImage(
+    @Param("id") id: string,
+    @Body() dto: SetPrimaryImageDto,
+  ) {
+    return await this.productsService.setPrimaryImage(id, dto.imageId);
+  }
+
+  @Patch(":id/images/order")
+  async updateImageOrder(
+    @Param("id") id: string,
+    @Body() dto: UpdateProductImageOrderDto,
+  ) {
+    return await this.productsService.updateImageOrder(id, dto);
+  }
+
+  @Delete(":id/images/:imageId")
+  async deleteImage(
+    @Param("id") id: string,
+    @Param("imageId") imageId: string,
+  ) {
+    return await this.productsService.deleteImage(id, imageId);
   }
 }

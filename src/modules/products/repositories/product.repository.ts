@@ -77,6 +77,9 @@ export class ProductRepository {
       orderBy: { createdAt: "desc" },
       include: {
         variations: true,
+        images: {
+          orderBy: { order: "asc" },
+        },
         company: {
           select: {
             name: true,
@@ -96,8 +99,88 @@ export class ProductRepository {
   async getProductById(id: string) {
     return await this.prisma.product.findUnique({
       where: { id },
-      include: { variations: true, company: true },
+      include: {
+        variations: true,
+        images: {
+          orderBy: { order: "asc" },
+        },
+        company: true,
+      },
     });
+  }
+
+  async getNextImageOrder(productId: string) {
+    const lastImage = await this.prisma.productImage.findFirst({
+      where: { productId },
+      orderBy: { order: "desc" },
+    });
+
+    return lastImage ? lastImage.order + 1 : 0;
+  }
+
+  async addProductImages(
+    productId: string,
+    images: Array<{
+      key: string;
+      url: string;
+      order: number;
+      isPrimary: boolean;
+    }>,
+  ) {
+    return await this.prisma.$transaction(
+      images.map((image) =>
+        this.prisma.productImage.create({
+          data: {
+            productId,
+            key: image.key,
+            url: image.url,
+            order: image.order,
+            isPrimary: image.isPrimary,
+          },
+        }),
+      ),
+    );
+  }
+
+  async findProductImage(productId: string, imageId: string) {
+    return await this.prisma.productImage.findFirst({
+      where: { id: imageId, productId },
+    });
+  }
+
+  async setPrimaryImage(productId: string, imageId: string) {
+    const [, updatedImage] = await this.prisma.$transaction([
+      this.prisma.productImage.updateMany({
+        where: { productId },
+        data: { isPrimary: false },
+      }),
+      this.prisma.productImage.update({
+        where: { id: imageId },
+        data: { isPrimary: true },
+      }),
+    ]);
+
+    return updatedImage;
+  }
+
+  async deleteProductImage(imageId: string) {
+    return await this.prisma.productImage.delete({
+      where: { id: imageId },
+    });
+  }
+
+  async updateImageOrders(
+    productId: string,
+    items: Array<{ imageId: string; order: number }>,
+  ) {
+    return await this.prisma.$transaction(
+      items.map((item) =>
+        this.prisma.productImage.updateMany({
+          where: { id: item.imageId, productId },
+          data: { order: item.order },
+        }),
+      ),
+    );
   }
 
   async findVariationsByIds(variationIds: string[]) {

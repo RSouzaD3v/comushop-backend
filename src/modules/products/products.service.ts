@@ -1,13 +1,20 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { ProductRepository } from "./repositories/product.repository";
 import { CreateProductDto } from "./dto/create-product.dto";
 import { CompaniesService } from "../companies/companies.service";
+import { S3Service } from "../storage/s3.service";
+import { UpdateProductImageOrderDto } from "./dto/update-product-image-order.dto";
 
 @Injectable()
 export class ProductsService {
   constructor(
     private readonly productRepo: ProductRepository,
     private readonly companiesService: CompaniesService,
+    private readonly s3Service: S3Service,
   ) {}
 
   async create(dto: CreateProductDto) {
@@ -46,5 +53,85 @@ export class ProductsService {
     if (!product) throw new NotFoundException("Product not found");
 
     return product;
+  }
+
+  async uploadImages(
+    productId: string,
+    files: Array<{ buffer: Buffer; originalname: string; mimetype: string }>,
+  ) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException("Nenhuma imagem foi enviada.");
+    }
+
+    const product = await this.getById(productId);
+    const hasPrimary = product.images?.some((image) => image.isPrimary);
+    let nextOrder = await this.productRepo.getNextImageOrder(productId);
+
+    const uploads = [] as Array<{
+      key: string;
+      url: string;
+      order: number;
+      isPrimary: boolean;
+    }>;
+
+    for (const [index, file] of files.entries()) {
+      if (!file.mimetype.startsWith("image/")) {
+        throw new BadRequestException(
+          "Apenas arquivos de imagem sao permitidos.",
+        );
+      }
+
+      const { key, url } = await this.s3Service.uploadProductImage(
+        productId,
+        file,
+      );
+
+      uploads.push({
+        key,
+        url,
+        order: nextOrder++,
+        isPrimary: !hasPrimary && index === 0,
+      });
+    }
+
+    return await this.productRepo.addProductImages(productId, uploads);
+  }
+
+  async setPrimaryImage(productId: string, imageId: string) {
+    const image = await this.productRepo.findProductImage(productId, imageId);
+
+    if (!image) {
+      throw new NotFoundException("Imagem nao encontrada para este produto.");
+    }
+
+    return await this.productRepo.setPrimaryImage(productId, imageId);
+  }
+
+  async updateImageOrder(productId: string, dto: UpdateProductImageOrderDto) {
+    const product = await this.getById(productId);
+    const imageIds = new Set(product.images?.map((image) => image.id));
+
+    for (const item of dto.items) {
+      if (!imageIds.has(item.imageId)) {
+        throw new BadRequestException(
+          "Uma ou mais imagens nao pertencem a este produto.",
+        );
+      }
+    }
+
+    return await this.productRepo.updateImageOrders(productId, dto.items);
+  }
+
+  async deleteImage(productId: string, imageId: string) {
+    const image = await this.productRepo.findProductImage(productId, imageId);
+
+    if (!image) {
+      throw new NotFoundException("Imagem nao encontrada para este produto.");
+    }
+
+    await this.s3Service.deleteObject(image.key);
+    await this.productRepo.deleteProductImage(imageId);
+
+    return { success: true };
   }
 }
