@@ -69,6 +69,7 @@ model User {
   role        UserRole @default(CUSTOMER)
 
   addresses   UserAddress[]
+  storesFollowing StoreFollow[] @relation("UserFollowing")
 
   companiesOwned Company[]  @relation("CompanyOwner")
   orders         Order[]
@@ -106,12 +107,14 @@ model Company {
   name String
   slug String @unique
   logoUrl String?
+  description String?
 
   ownerUserId String?
   owner       User?   @relation("CompanyOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
 
   products  Product[]
   orders    Order[]
+  followers StoreFollow[] @relation("StoreFollowers")
   auditLogs AuditLog[] @relation("AuditCompany")
 
   createdAt DateTime @default(now())
@@ -390,4 +393,19 @@ model ProductReview {
   @@index([productId])
   @@index([userId])
   @@index([rating])
+}
+
+model StoreFollow {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("UserFollowing", fields: [userId], references: [id], onDelete: Cascade)
+  
+  storeId   String
+  store     Company  @relation("StoreFollowers", fields: [storeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, storeId])
+  @@index([userId])
+  @@index([storeId])
 }
