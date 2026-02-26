@@ -72,6 +72,7 @@ model User {
 
   companiesOwned Company[]  @relation("CompanyOwner")
   orders         Order[]
+  reviews        ProductReview[] @relation("UserReviews")
   authUsers      AuthUser[]
   auditLogs      AuditLog[] @relation("AuditActorUser")
 
@@ -166,6 +167,7 @@ model Product {
 
   variations ProductVariation[]
   images     ProductImage[]
+  reviews    ProductReview[] @relation("ProductReviews")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -364,4 +366,28 @@ model Coupon {
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+model ProductReview {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation("ProductReviews", fields: [productId], references: [id], onDelete: Cascade)
+  
+  userId    String
+  user      User     @relation("UserReviews", fields: [userId], references: [id], onDelete: Cascade)
+
+  rating    Int      @db.SmallInt
+  title     String?
+  comment   String?
+
+  helpfulCount     Int @default(0)
+  unhelpfulCount   Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, userId])
+  @@index([productId])
+  @@index([userId])
+  @@index([rating])
 }
