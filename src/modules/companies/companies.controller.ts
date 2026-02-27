@@ -49,10 +49,7 @@ export class CompaniesController {
 
   @Public()
   @Get("slug/:slug")
-  async getBySlug(
-    @Param("slug") slug: string,
-    @CurrentUser() user: any,
-  ) {
+  async getBySlug(@Param("slug") slug: string, @CurrentUser() user: any) {
     return await this.companiesService.getBySlug(slug, user?.userId);
   }
 
@@ -126,19 +123,14 @@ export class CompaniesController {
 
   @Get(":storeId/followers")
   @HttpCode(HttpStatus.OK)
-  async getStoreFollowers(
-    @Param("storeId") storeId: string,
-  ) {
+  async getStoreFollowers(@Param("storeId") storeId: string) {
     return await this.companiesService.getStoreFollowers(storeId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get("user/following")
   @HttpCode(HttpStatus.OK)
-  async getUserFollowing(
-    @CurrentUser() user: any,
-  ) {
+  async getUserFollowing(@CurrentUser() user: any) {
     return await this.companiesService.getUserFollowing(user.userId);
   }
 }
-

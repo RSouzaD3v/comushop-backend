@@ -108,4 +108,25 @@ export class S3Service {
       url: this.getPublicUrl(key),
     };
   }
+
+  async uploadBannerImage(
+    file: { buffer: Buffer; originalname: string; mimetype: string },
+  ) {
+    const extension = extname(file.originalname).toLowerCase();
+    const key = `banners/${randomUUID()}${extension}`;
+
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+      }),
+    );
+
+    return {
+      key,
+      url: this.getPublicUrl(key),
+    };
+  }
 }

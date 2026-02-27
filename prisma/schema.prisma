@@ -48,6 +48,15 @@ enum PaymentTransactionType {
   WEBHOOK
 }
 
+enum LinkType {
+  PRODUCT
+  STORE
+  CATEGORY
+  FLASH_SALE
+  EXTERNAL
+  NONE
+}
+
 enum PaymentTransactionStatus {
   PENDING
   SUCCEEDED
@@ -68,45 +77,45 @@ model User {
   avatarUrl   String?
   role        UserRole @default(CUSTOMER)
 
-  addresses   UserAddress[]
+  addresses       UserAddress[]
   storesFollowing StoreFollow[] @relation("UserFollowing")
 
-  companiesOwned Company[]  @relation("CompanyOwner")
+  companiesOwned Company[]       @relation("CompanyOwner")
   orders         Order[]
   reviews        ProductReview[] @relation("UserReviews")
   authUsers      AuthUser[]
-  auditLogs      AuditLog[] @relation("AuditActorUser")
+  auditLogs      AuditLog[]      @relation("AuditActorUser")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model UserAddress {
-  id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  description  String?  
-  zipCode      String  
+  description  String?
+  zipCode      String
   street       String
   number       String
   complement   String?
   neighborhood String
   city         String
   state        String
-  isDefault    Boolean  @default(false)
+  isDefault    Boolean @default(false)
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
 }
 
 model Company {
-  id   String @id @default(cuid())
-  name String
-  slug String @unique
-  logoUrl String?
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  logoUrl     String?
   description String?
 
   ownerUserId String?
@@ -115,7 +124,7 @@ model Company {
   products  Product[]
   orders    Order[]
   followers StoreFollow[] @relation("StoreFollowers")
-  auditLogs AuditLog[] @relation("AuditCompany")
+  auditLogs AuditLog[]    @relation("AuditCompany")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -170,7 +179,8 @@ model Product {
 
   variations ProductVariation[]
   images     ProductImage[]
-  reviews    ProductReview[] @relation("ProductReviews")
+  reviews    ProductReview[]    @relation("ProductReviews")
+  flashSales FlashSale[]        @relation("FlashSaleProduct")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -181,11 +191,11 @@ model Product {
 }
 
 model Category {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  slug      String   @unique
+  id          String  @id @default(cuid())
+  name        String  @unique
+  slug        String  @unique
   description String?
-  imageUrl  String?
+  imageUrl    String?
 
   products Product[]
 
@@ -194,14 +204,14 @@ model Category {
 }
 
 model ProductImage {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   key       String
   url       String
-  isPrimary Boolean  @default(false)
-  order     Int      @default(0)
+  isPrimary Boolean @default(false)
+  order     Int     @default(0)
 
   createdAt DateTime @default(now())
 
@@ -237,11 +247,11 @@ model Order {
   customerUserId String?
   customer       User?   @relation(fields: [customerUserId], references: [id], onDelete: SetNull)
 
-  currency      String @default("BRL")
-  subtotalCents Int    @default(0)
-  shippingCents Int    @default(0)
-  discountCents Int    @default(0)
-  totalCents    Int    @default(0)
+  currency        String @default("BRL")
+  subtotalCents   Int    @default(0)
+  shippingCents   Int    @default(0)
+  discountCents   Int    @default(0)
+  totalCents      Int    @default(0)
   shippingAddress Json?
 
   items    OrderItem[]
@@ -357,34 +367,34 @@ model AuditLog {
 }
 
 model Coupon {
-  id              String   @id @default(uuid())
-  code            String   @unique
-  discountType    String   
-  value           Int      
-  minPurchaseCents Int     @default(0) 
-  expirationDate  DateTime?
-  isActive        Boolean  @default(true)
-  maxUses         Int?     
-  usedCount       Int      @default(0)
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id               String    @id @default(uuid())
+  code             String    @unique
+  discountType     String
+  value            Int
+  minPurchaseCents Int       @default(0)
+  expirationDate   DateTime?
+  isActive         Boolean   @default(true)
+  maxUses          Int?
+  usedCount        Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ProductReview {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   productId String
-  product   Product  @relation("ProductReviews", fields: [productId], references: [id], onDelete: Cascade)
-  
-  userId    String
-  user      User     @relation("UserReviews", fields: [userId], references: [id], onDelete: Cascade)
+  product   Product @relation("ProductReviews", fields: [productId], references: [id], onDelete: Cascade)
 
-  rating    Int      @db.SmallInt
-  title     String?
-  comment   String?
+  userId String
+  user   User   @relation("UserReviews", fields: [userId], references: [id], onDelete: Cascade)
 
-  helpfulCount     Int @default(0)
-  unhelpfulCount   Int @default(0)
+  rating  Int     @db.SmallInt
+  title   String?
+  comment String?
+
+  helpfulCount   Int @default(0)
+  unhelpfulCount Int @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -396,12 +406,12 @@ model ProductReview {
 }
 
 model StoreFollow {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation("UserFollowing", fields: [userId], references: [id], onDelete: Cascade)
-  
-  storeId   String
-  store     Company  @relation("StoreFollowers", fields: [storeId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation("UserFollowing", fields: [userId], references: [id], onDelete: Cascade)
+
+  storeId String
+  store   Company @relation("StoreFollowers", fields: [storeId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
@@ -409,3 +419,45 @@ model StoreFollow {
   @@index([userId])
   @@index([storeId])
 }
+
+model FlashSale {
+  id              String   @id @default(cuid())
+  title           String
+  description     String?
+  startDate       DateTime
+  endDate         DateTime
+  discountPercent Int      @db.SmallInt
+  isActive        Boolean  @default(true)
+
+  productId String
+  product   Product @relation("FlashSaleProduct", fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([startDate, endDate])
+  @@index([isActive])
+}
+
+model CarouselBanner {
+  id           String    @id @default(cuid())
+  title        String?
+  subtitle     String?
+  imageUrl     String
+  linkUrl      String?
+  linkType     LinkType  @default(NONE)
+  linkTargetId String?
+  position     Int
+  isActive     Boolean   @default(true)
+  startDate    DateTime?
+  endDate      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([position])
+  @@index([isActive])
+  @@index([startDate, endDate])
+}
+
