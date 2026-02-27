@@ -64,40 +64,9 @@ export class ProductsController {
     return await this.productsService.findAll(filters);
   }
 
-  // ROTAS ESPECÍFICAS DEVEM VIR ANTES DE ":id"
-  @Get("recently-viewed")
-  @UseGuards(JwtAuthGuard)
-  async getRecentlyViewed(
-    @CurrentUser() user: any,
-    @Query("limit") limit?: string,
-  ) {
-    const limitNumber = limit ? parseInt(limit) : 10;
-    return await this.productsService.getRecentlyViewed(
-      user.userId,
-      limitNumber,
-    );
-  }
-
-  @Get("near-you")
-  @Public()
-  async getNearYou(
-    @Query("city") city?: string,
-    @Query("limit") limit?: string,
-  ) {
-    const limitNumber = limit ? parseInt(limit) : 20;
-    return await this.productsService.getProductsNearby(city, limitNumber);
-  }
-
-  // ROTA COM PARÂMETRO DINÂMICO VEM DEPOIS
   @Get(":id")
   async get(@Param("id") id: string) {
     return await this.productsService.getById(id);
-  }
-
-  @Post(":id/view")
-  @UseGuards(JwtAuthGuard)
-  async recordProductView(@Param("id") id: string, @CurrentUser() user: any) {
-    return await this.productsService.recordProductView(user.userId, id);
   }
 
   @Post(":id/images")
@@ -141,5 +110,34 @@ export class ProductsController {
     @Param("imageId") imageId: string,
   ) {
     return await this.productsService.deleteImage(id, imageId);
+  }
+
+  @Post(":id/view")
+  @UseGuards(JwtAuthGuard)
+  async recordProductView(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+  ) {
+    return await this.productsService.recordProductView(user.userId, id);
+  }
+
+  @Get("recently-viewed")
+  @UseGuards(JwtAuthGuard)
+  async getRecentlyViewed(
+    @CurrentUser() user: any,
+    @Query("limit") limit?: string,
+  ) {
+    const limitNumber = limit ? parseInt(limit) : 10;
+    return await this.productsService.getRecentlyViewed(user.userId, limitNumber);
+  }
+
+  @Get("near-you")
+  @Public()
+  async getNearYou(
+    @Query("city") city?: string,
+    @Query("limit") limit?: string,
+  ) {
+    const limitNumber = limit ? parseInt(limit) : 20;
+    return await this.productsService.getProductsNearby(city, limitNumber);
   }
 }

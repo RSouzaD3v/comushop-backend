@@ -8,6 +8,7 @@ import { CreateProductDto } from "./dto/create-product.dto";
 import { CompaniesService } from "../companies/companies.service";
 import { S3Service } from "../storage/s3.service";
 import { UpdateProductImageOrderDto } from "./dto/update-product-image-order.dto";
+import { ViewedProductRepository } from "./repositories/viewed-product.repository";
 
 @Injectable()
 export class ProductsService {
@@ -15,6 +16,7 @@ export class ProductsService {
     private readonly productRepo: ProductRepository,
     private readonly companiesService: CompaniesService,
     private readonly s3Service: S3Service,
+    private readonly viewedProductRepo: ViewedProductRepository,
   ) {}
 
   async create(dto: CreateProductDto) {
@@ -133,5 +135,25 @@ export class ProductsService {
     await this.productRepo.deleteProductImage(imageId);
 
     return { success: true };
+  }
+
+  async recordProductView(userId: string, productId: string) {
+    return await this.viewedProductRepo.recordView(userId, productId);
+  }
+
+  async getRecentlyViewed(userId: string, limit: number = 10) {
+    const viewedItems = await this.viewedProductRepo.getRecentlyViewed(
+      userId,
+      limit,
+    );
+
+    return viewedItems.map((item: any) => ({
+      ...item.product,
+      viewedAt: item.viewedAt,
+    }));
+  }
+
+  async getProductsNearby(city?: string, limit: number = 20) {
+    return await this.viewedProductRepo.getProductsNearby(city, limit);
   }
 }

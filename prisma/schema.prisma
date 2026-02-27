@@ -79,6 +79,7 @@ model User {
 
   addresses       UserAddress[]
   storesFollowing StoreFollow[] @relation("UserFollowing")
+  viewedProducts  ViewedProduct[] @relation("UserViewedProducts")
 
   companiesOwned Company[]       @relation("CompanyOwner")
   orders         Order[]
@@ -121,6 +122,12 @@ model Company {
   ownerUserId String?
   owner       User?   @relation("CompanyOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
 
+  // Location fields
+  city      String?
+  state     String?
+  latitude  Float?
+  longitude Float?
+
   products  Product[]
   orders    Order[]
   followers StoreFollow[] @relation("StoreFollowers")
@@ -130,6 +137,7 @@ model Company {
   updatedAt DateTime @updatedAt
 
   @@index([ownerUserId])
+  @@index([city])
 }
 
 /// Auth is intentionally decoupled from User.
@@ -181,6 +189,7 @@ model Product {
   images     ProductImage[]
   reviews    ProductReview[]    @relation("ProductReviews")
   flashSales FlashSale[]        @relation("FlashSaleProduct")
+  viewedBy   ViewedProduct[]    @relation("ProductViews")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -461,3 +470,16 @@ model CarouselBanner {
   @@index([startDate, endDate])
 }
 
+model ViewedProduct {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("UserViewedProducts", fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation("ProductViews", fields: [productId], references: [id], onDelete: Cascade)
+  viewedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([viewedAt])
+}

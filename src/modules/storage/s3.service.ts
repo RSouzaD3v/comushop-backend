@@ -109,9 +109,11 @@ export class S3Service {
     };
   }
 
-  async uploadBannerImage(
-    file: { buffer: Buffer; originalname: string; mimetype: string },
-  ) {
+  async uploadBannerImage(file: {
+    buffer: Buffer;
+    originalname: string;
+    mimetype: string;
+  }) {
     const extension = extname(file.originalname).toLowerCase();
     const key = `banners/${randomUUID()}${extension}`;
 
