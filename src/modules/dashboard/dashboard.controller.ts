@@ -53,10 +53,7 @@ export class DashboardController {
     @Query("period") period?: "day" | "week" | "month",
   ) {
     await this.verifyCompanyAccess(userId, companyId);
-    return this.dashboardService.getSalesChart(
-      companyId,
-      period || "week",
-    );
+    return this.dashboardService.getSalesChart(companyId, period || "week");
   }
 
   @Get(":companyId/top-products")

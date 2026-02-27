@@ -199,10 +199,7 @@ export class DashboardService {
     };
   }
 
-  async getTopProducts(
-    companyId: string,
-    limit = 10,
-  ): Promise<TopProductsDto> {
+  async getTopProducts(companyId: string, limit = 10): Promise<TopProductsDto> {
     const company = await this.prisma.company.findUnique({
       where: { id: companyId },
     });
@@ -346,7 +343,8 @@ export class DashboardService {
     const mappedOrders: DashboardOrderDto[] = orders.map((order) => ({
       id: order.id,
       status: order.status,
-      customerName: order.customer?.displayName || order.customer?.email || "Anônimo",
+      customerName:
+        order.customer?.displayName || order.customer?.email || "Anônimo",
       totalCents: order.totalCents,
       items: order.items.map((item) => {
         const snapshot = item.productSnapshot as any;

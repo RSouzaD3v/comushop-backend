@@ -1,9 +1,11 @@
 # Dashboard de Vendedor/Admin - ComuShop Backend
 
 ## Visão Geral
+
 Sistema completo de analytics e dashboard para vendedores monitorarem suas vendas, produtos e pedidos em tempo real.
 
 ## Segurança
+
 - ✅ Todos os endpoints requerem autenticação JWT
 - ✅ Apenas o dono da empresa pode acessar o dashboard dela
 - ✅ Validação automática de `ownerUserId` antes de qualquer operação
@@ -11,6 +13,7 @@ Sistema completo de analytics e dashboard para vendedores monitorarem suas venda
 ## Endpoints
 
 ### 1. KPIs do Dashboard
+
 ```
 GET /dashboard/:companyId/kpis
 Authorization: Bearer {token}
@@ -27,6 +30,7 @@ Response:
 ```
 
 **Métricas:**
+
 - `todayOrders`: Total de pedidos criados hoje (00:00 - 23:59)
 - `todayRevenue`: Receita de hoje (apenas pedidos PAID)
 - `pendingOrders`: Pedidos aguardando pagamento (status PENDING_PAYMENT)
@@ -37,6 +41,7 @@ Response:
 ---
 
 ### 2. Gráfico de Vendas
+
 ```
 GET /dashboard/:companyId/sales?period=week
 Authorization: Bearer {token}
@@ -67,6 +72,7 @@ Response:
 ```
 
 **Períodos:**
+
 - `day`: Últimas 24h agrupadas por hora
 - `week`: Últimos 7 dias agrupados por dia
 - `month`: Últimos 30 dias agrupados por dia
@@ -76,6 +82,7 @@ Response:
 ---
 
 ### 3. Produtos Mais Vendidos
+
 ```
 GET /dashboard/:companyId/top-products?limit=10
 Authorization: Bearer {token}
@@ -107,6 +114,7 @@ Response:
 ```
 
 **Cálculo:**
+
 - Baseado nos últimos 30 dias
 - Apenas pedidos PAID
 - Ordenado por receita (revenue) decrescente
@@ -115,6 +123,7 @@ Response:
 ---
 
 ### 4. Histórico de Pedidos
+
 ```
 GET /dashboard/:companyId/orders?status=PAID&limit=20&offset=0
 Authorization: Bearer {token}
@@ -159,6 +168,7 @@ Response:
 ```
 
 **Filtros:**
+
 - `status`: Filtrar por status específico
 - `startDate` + `endDate`: Filtrar por intervalo de datas
 - Sem filtros: retorna todos os pedidos da empresa
@@ -170,11 +180,12 @@ Response:
 ## Exemplos de Uso
 
 ### Frontend - Buscar KPIs
+
 ```typescript
 const response = await fetch(`/api/dashboard/${companyId}/kpis`, {
   headers: {
-    'Authorization': `Bearer ${token}`
-  }
+    Authorization: `Bearer ${token}`,
+  },
 });
 
 const kpis = await response.json();
@@ -183,55 +194,52 @@ console.log(`Receita hoje: R$ ${(kpis.todayRevenue / 100).toFixed(2)}`);
 ```
 
 ### Frontend - Gráfico de Vendas
+
 ```typescript
-const response = await fetch(
-  `/api/dashboard/${companyId}/sales?period=week`,
-  {
-    headers: { 'Authorization': `Bearer ${token}` }
-  }
-);
+const response = await fetch(`/api/dashboard/${companyId}/sales?period=week`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
 
 const salesData = await response.json();
 
 // Usar com Chart.js, Recharts, etc
-const chartData = salesData.data.map(point => ({
-  date: new Date(point.date).toLocaleDateString('pt-BR'),
-  value: point.revenue / 100  // converter centavos para reais
+const chartData = salesData.data.map((point) => ({
+  date: new Date(point.date).toLocaleDateString("pt-BR"),
+  value: point.revenue / 100, // converter centavos para reais
 }));
 ```
 
 ### Frontend - Produtos Mais Vendidos
+
 ```typescript
 const response = await fetch(
   `/api/dashboard/${companyId}/top-products?limit=5`,
   {
-    headers: { 'Authorization': `Bearer ${token}` }
-  }
+    headers: { Authorization: `Bearer ${token}` },
+  },
 );
 
 const { products } = await response.json();
 
-products.forEach(product => {
+products.forEach((product) => {
   console.log(`${product.productName}: ${product.quantitySold} unidades`);
 });
 ```
 
 ### Frontend - Pedidos com Filtros
+
 ```typescript
 const params = new URLSearchParams({
-  status: 'PAID',
-  startDate: '2026-02-01',
-  endDate: '2026-02-28',
-  limit: '20',
-  offset: '0'
+  status: "PAID",
+  startDate: "2026-02-01",
+  endDate: "2026-02-28",
+  limit: "20",
+  offset: "0",
 });
 
-const response = await fetch(
-  `/api/dashboard/${companyId}/orders?${params}`,
-  {
-    headers: { 'Authorization': `Bearer ${token}` }
-  }
-);
+const response = await fetch(`/api/dashboard/${companyId}/orders?${params}`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
 
 const { orders, total } = await response.json();
 console.log(`${orders.length} de ${total} pedidos`);
@@ -244,6 +252,7 @@ console.log(`${orders.length} de ${total} pedidos`);
 Todos os valores monetários são retornados em **centavos** para evitar problemas de precisão com decimais.
 
 **Para exibir em reais:**
+
 ```typescript
 // Backend retorna: 456700
 const valueInCents = 456700;
@@ -251,9 +260,9 @@ const valueInReais = valueInCents / 100;
 console.log(`R$ ${valueInReais.toFixed(2)}`); // R$ 4567.00
 
 // Com formatação brasileira
-const formatted = new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL'
+const formatted = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
 }).format(valueInReais);
 console.log(formatted); // R$ 4.567,00
 ```
@@ -264,10 +273,10 @@ console.log(formatted); // R$ 4.567,00
 
 ```typescript
 enum OrderStatus {
-  PENDING_PAYMENT = "PENDING_PAYMENT",  // Aguardando pagamento
-  PAID = "PAID",                        // Pagamento confirmado
-  CANCELLED = "CANCELLED",              // Cancelado
-  REFUNDED = "REFUNDED"                 // Reembolsado
+  PENDING_PAYMENT = "PENDING_PAYMENT", // Aguardando pagamento
+  PAID = "PAID", // Pagamento confirmado
+  CANCELLED = "CANCELLED", // Cancelado
+  REFUNDED = "REFUNDED", // Reembolsado
 }
 ```
 
@@ -276,30 +285,36 @@ enum OrderStatus {
 ## Erros Comuns
 
 ### 403 Forbidden
+
 ```json
 {
   "statusCode": 403,
   "message": "Você não tem permissão para acessar este dashboard"
 }
 ```
+
 **Causa:** Usuário tentando acessar dashboard de empresa que não é dele.
 
 ### 404 Not Found
+
 ```json
 {
   "statusCode": 404,
   "message": "Empresa não encontrada"
 }
 ```
+
 **Causa:** `companyId` inválido ou empresa não existe.
 
 ### 401 Unauthorized
+
 ```json
 {
   "statusCode": 401,
   "message": "Unauthorized"
 }
 ```
+
 **Causa:** Token JWT ausente, inválido ou expirado.
 
 ---
@@ -307,13 +322,16 @@ enum OrderStatus {
 ## Performance
 
 ### Índices do Banco de Dados
+
 O Prisma Schema já inclui índices otimizados:
+
 - `Order.companyId` - Para queries por empresa
 - `Order.status` - Para filtros por status
 - `Order.customerUserId` - Para joins com customer
 - `Product.companyId` e `Product.status` - Para contagem de produtos ativos
 
 ### Cache (Recomendado)
+
 Para dashboards com muitos acessos, considere implementar cache:
 
 ```typescript
