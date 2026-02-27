@@ -57,6 +57,11 @@ enum LinkType {
   NONE
 }
 
+enum CardType {
+  CREDIT
+  DEBIT
+}
+
 enum PaymentTransactionStatus {
   PENDING
   SUCCEEDED
@@ -78,6 +83,7 @@ model User {
   role        UserRole @default(CUSTOMER)
 
   addresses       UserAddress[]
+  paymentMethods  UserPaymentMethod[]
   storesFollowing StoreFollow[] @relation("UserFollowing")
   viewedProducts  ViewedProduct[] @relation("UserViewedProducts")
 
@@ -105,6 +111,25 @@ model UserAddress {
   city         String
   state        String
   isDefault    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model UserPaymentMethod {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  cardType        CardType
+  cardholderName  String
+  cardLastFour    String
+  cardBrand       String
+  expiryMonth     Int
+  expiryYear      Int
+  isDefault       Boolean  @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

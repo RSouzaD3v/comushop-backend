@@ -13,6 +13,7 @@ import {
 import { FileInterceptor } from "@nestjs/platform-express";
 import { UsersService } from "./users.service";
 import { CreateAddressDto } from "./dto/create-address.dto";
+import { CreatePaymentMethodDto } from "./dto/create-payment-method.dto";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
@@ -50,6 +51,35 @@ export class UsersController {
     @Body() dto: CreateAddressDto,
   ) {
     return this.usersService.updateAddress(userId, id, dto);
+  }
+
+  @Get("payment-methods")
+  async getPaymentMethods(@CurrentUser("userId") userId: string) {
+    return this.usersService.listPaymentMethods(userId);
+  }
+
+  @Post("payment-methods")
+  async addPaymentMethod(
+    @CurrentUser("userId") userId: string,
+    @Body() dto: CreatePaymentMethodDto,
+  ) {
+    return this.usersService.createPaymentMethod(userId, dto);
+  }
+
+  @Delete("payment-methods/:id")
+  async removePaymentMethod(
+    @CurrentUser("userId") userId: string,
+    @Param("id") id: string,
+  ) {
+    return this.usersService.deletePaymentMethod(userId, id);
+  }
+
+  @Patch("payment-methods/:id/default")
+  async setDefaultPaymentMethod(
+    @CurrentUser("userId") userId: string,
+    @Param("id") id: string,
+  ) {
+    return this.usersService.setDefaultPaymentMethod(userId, id);
   }
 
   @Patch("profile")
