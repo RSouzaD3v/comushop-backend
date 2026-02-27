@@ -34,8 +34,7 @@ export class NotificationsGateway
       console.log("🔵 Cliente tentando conectar:", client.id);
 
       // Extract token from handshake auth or query
-      let token =
-        client.handshake.auth.token || client.handshake.query.token;
+      let token = client.handshake.auth.token || client.handshake.query.token;
 
       console.log("🔑 Auth token:", client.handshake.auth?.token);
       console.log("🔑 Query token:", client.handshake.query?.token);
