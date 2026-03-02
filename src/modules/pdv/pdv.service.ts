@@ -221,7 +221,7 @@ export class PdvService {
     // Valida que o usuário tem um User vinculado
     if (!user?.userId) {
       throw new BadRequestException(
-        "Usuário não possui perfil vinculado. Entre em contato com o administrador."
+        "Usuário não possui perfil vinculado. Entre em contato com o administrador.",
       );
     }
 
@@ -250,7 +250,7 @@ export class PdvService {
     // Valida que o usuário tem um User vinculado
     if (!user?.userId) {
       throw new BadRequestException(
-        "Usuário não possui perfil vinculado. Entre em contato com o administrador."
+        "Usuário não possui perfil vinculado. Entre em contato com o administrador.",
       );
     }
 
