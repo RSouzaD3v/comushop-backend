@@ -93,6 +93,12 @@ async function main() {
       name: "Minha Loja de Teste",
       slug: "minha-loja-de-teste",
       ownerUserId: vendedorProfile.id,
+      logoUrl: null,
+      description: null,
+      city: null,
+      state: null,
+      latitude: null,
+      longitude: null,
     },
   });
 

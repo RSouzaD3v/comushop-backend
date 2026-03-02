@@ -13,6 +13,7 @@ import { PromotionsModule } from "./modules/promotions/promotions.module";
 import { BannersModule } from "./modules/banners/banners.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { DashboardModule } from "./modules/dashboard/dashboard.module";
+import { PdvModule } from "./modules/pdv/pdv.module";
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { DashboardModule } from "./modules/dashboard/dashboard.module";
     BannersModule,
     NotificationsModule,
     DashboardModule,
+    PdvModule,
   ],
 })
 export class AppModule {}

@@ -1,3 +1,21 @@
+enum PaymentMethod {
+  DINHEIRO
+  CARTAO
+  PIX
+  OUTRO
+}
+/// Pagamento de venda PDV
+model PdvPayment {
+  id        String        @id @default(cuid())
+  sale      Sale          @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  saleId    Int
+  method    PaymentMethod
+  amount    Int           // em centavos
+  status    String        // RECEBIDO, PENDENTE, etc
+  createdAt DateTime      @default(now())
+
+  @@index([saleId])
+}
 generator client {
   provider = "prisma-client-js"
 }
@@ -62,6 +80,17 @@ enum CardType {
   DEBIT
 }
 
+enum SaleStatus {
+  COMPLETED
+  CANCELLED
+  PENDING
+}
+
+enum CashRegisterStatus {
+  OPEN
+  CLOSED
+}
+
 enum PaymentTransactionStatus {
   PENDING
   SUCCEEDED
@@ -102,6 +131,11 @@ model User {
   reviews        ProductReview[] @relation("UserReviews")
   authUsers      AuthUser[]
   auditLogs      AuditLog[]      @relation("AuditActorUser")
+
+  // Relações PDV
+  sales          Sale[]
+  cashRegistersOpened CashRegister[] @relation("CashRegisterOpenedBy")
+  cashRegistersClosed CashRegister[] @relation("CashRegisterClosedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -238,11 +272,16 @@ model Product {
   categoryId  String?
   category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
+  barcode     String?   @unique // Código de barras
+
   variations ProductVariation[]
   images     ProductImage[]
   reviews    ProductReview[]    @relation("ProductReviews")
   flashSales FlashSale[]        @relation("FlashSaleProduct")
   viewedBy   ViewedProduct[]    @relation("ProductViews")
+
+  // Relação PDV
+  saleItems  SaleItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -250,6 +289,48 @@ model Product {
   @@index([companyId])
   @@index([status])
   @@index([categoryId])
+}
+
+/// PDV: Venda
+model Sale {
+  id           Int        @id @default(autoincrement())
+  createdAt    DateTime   @default(now())
+  user         User?      @relation(fields: [userId], references: [id])
+  userId       String?
+  items        SaleItem[]
+  totalAmount  Int        // em centavos
+  status       SaleStatus
+  cashRegister CashRegister? @relation(fields: [cashRegisterId], references: [id])
+  cashRegisterId Int?
+  cancelReason String?
+
+  pdvPayments PdvPayment[]
+}
+
+/// PDV: Item da venda
+model SaleItem {
+  id        Int      @id @default(autoincrement())
+  sale      Sale     @relation(fields: [saleId], references: [id])
+  saleId    Int
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String
+  quantity  Int
+  price     Int      // em centavos
+}
+
+/// PDV: Caixa
+model CashRegister {
+  id           Int      @id @default(autoincrement())
+  openedAt     DateTime
+  closedAt     DateTime?
+  openedBy     User     @relation("CashRegisterOpenedBy", fields: [openedById], references: [id])
+  openedById   String
+  closedBy     User?    @relation("CashRegisterClosedBy", fields: [closedById], references: [id])
+  closedById   String?
+  initialValue Int
+  finalValue   Int?
+  status       CashRegisterStatus
+  sales        Sale[]
 }
 
 model Category {
