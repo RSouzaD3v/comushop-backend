@@ -218,11 +218,18 @@ export class PdvService {
   }
 
   async openCashRegister(dto: OpenCashRegisterDto, user: any) {
+    // Valida que o usuário tem um User vinculado
+    if (!user?.userId) {
+      throw new BadRequestException(
+        "Usuário não possui perfil vinculado. Entre em contato com o administrador."
+      );
+    }
+
     // Cria registro de caixa aberto e loga auditoria
     const cashRegister = await this.prisma.cashRegister.create({
       data: {
         openedAt: new Date(),
-        openedById: dto.openedById,
+        openedById: user.userId,
         initialValue: dto.initialValue,
         status: "OPEN",
       },
@@ -240,6 +247,13 @@ export class PdvService {
   }
 
   async closeCashRegister(dto: CloseCashRegisterDto, user: any) {
+    // Valida que o usuário tem um User vinculado
+    if (!user?.userId) {
+      throw new BadRequestException(
+        "Usuário não possui perfil vinculado. Entre em contato com o administrador."
+      );
+    }
+
     // 1. Buscar caixa e vendas do período
     const cashRegister = await this.prisma.cashRegister.findUnique({
       where: { id: dto.cashRegisterId },
@@ -269,7 +283,7 @@ export class PdvService {
       where: { id: dto.cashRegisterId },
       data: {
         closedAt,
-        closedById: dto.closedById,
+        closedById: user.userId,
         finalValue: dto.finalValue,
         status: "CLOSED",
       },
