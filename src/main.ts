@@ -7,10 +7,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: true, // URL do seu frontend Next.js
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+    origin: ["https://comushop-web-three.vercel.app", "http://localhost:3000"],
+    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
     credentials: true,
-    allowedHeaders: "Content-Type, Accept, Authorization",
+    allowedHeaders: ["Content-Type", "Accept", "Authorization"],
   });
 
   app.setGlobalPrefix("api");
